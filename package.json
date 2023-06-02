@@ -1,0 +1,22 @@
+{
+  "name": "modularize-jsx",
+  "version": "1.0.0",
+  "description": "Modularize your classNames in jsx/tsx file",
+  "main": "index.js",
+  "bin": {
+    "modularize-jsx": "./index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "brs",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.2.5"
+  },
+  "dependencies": {
+    "@babel/core": "^7.22.1",
+    "@babel/parser": "^7.22.4",
+    "@babel/types": "^7.22.4"
+  }
+}
