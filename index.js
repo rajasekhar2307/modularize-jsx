@@ -1,31 +1,74 @@
 #!/usr/bin/env node
 
 const fs = require("fs");
+const path = require("path");
 const parser = require("@babel/parser");
 const traverse = require("@babel/traverse").default;
 const t = require("@babel/types");
+const PrettyError = require("pretty-error");
 
-const jsxFilePath = process.argv[2]; // Get the path to the JSX file from the command line
+let prettyError = new PrettyError();
 
-if (!jsxFilePath) {
-  console.error("Please provide the path to the JSX file.");
+// Get the path to the JSX file from the command line
+const jsxFilePath = process.argv[2];
+
+// Get the CSS module name from the command line
+const cssFilePath = process.argv[3];
+
+// Extracting filename
+const importAlias = path.basename(cssFilePath).split(".")[0] + "Styles";
+
+if (
+  !jsxFilePath ||
+  (path.extname(jsxFilePath) != ".jsx" && path.extname(jsxFilePath) != ".tsx")
+) {
+  console.error(prettyError.render("Please provide the path to the JSX file."));
   process.exit(1);
 }
 
-const cssModuleName = process.argv[3]; // Get the CSS module name from the command line
-
-if (!cssModuleName) {
-  console.error("Please provide the name of the CSS module.");
+if (!cssFilePath || path.extname(cssFilePath) != ".css") {
+  console.error(prettyError.render("Please provide the path to CSS module."));
   process.exit(1);
 }
 
-const cssModulePath = `./${cssModuleName}.module.css`; // Construct the path to the CSS module
-const cssModule = parseCSS(cssModulePath); // Provide the path to your CSS module here
+if (!jsxFilePath || !cssFilePath) {
+  console.error(prettyError.render("CSS/JSX file path missing."));
+  process.exit(1);
+}
 
-const jsxCode = fs.readFileSync(jsxFilePath, "utf-8"); // Read the JSX code from the file
+// Read the JSX code from the file
+let jsxCode;
 
+try {
+  jsxCode = fs.readFileSync(jsxFilePath, "utf-8");
+} catch (err) {
+  console.error(
+    prettyError.render(
+      new Error("JSX/TSX file doesn't exist, please provide a valid path")
+    )
+  );
+  process.exit(1);
+}
+
+// Provide the path to your CSS module here
+const cssModule = parseCSS(cssFilePath);
+/**
+ *
+ * @param {*} path - Path to CSS Module
+ * @returns - classMap of the classes
+ */
 function parseCSS(path) {
-  const css = fs.readFileSync(path, "utf-8");
+  let css;
+  try {
+    css = fs.readFileSync(path, "utf-8");
+  } catch (err) {
+    console.error(
+      prettyError.render(
+        new Error("CSS module doesn't exist, please provide a valid path")
+      )
+    );
+    process.exit(1);
+  }
   const classMap = {};
   const regex = /\.([a-zA-Z0-9_-]+)\s*{/g;
   let match;
@@ -37,8 +80,20 @@ function parseCSS(path) {
 
 const transformedCode = transformClassNames(jsxCode, cssModule);
 
-fs.writeFileSync(jsxFilePath, transformedCode); // Write the transformed code back to the file
+// Write the transformed code back to the file
+fs.writeFileSync(
+  jsxFilePath,
+  `import ${importAlias} from ` + `"${cssFilePath}";` + "\n"
+);
+fs.appendFileSync(jsxFilePath, transformedCode);
 console.log("Class names replaced successfully.");
+
+/**
+ *
+ * @param {*} code - JSX Code to be parsed
+ * @param {*} cssModule - CSS module
+ * @returns JSX code with replaced classNames
+ */
 function transformClassNames(code, cssModule) {
   const ast = parser.parse(code, {
     sourceType: "module",
@@ -46,29 +101,24 @@ function transformClassNames(code, cssModule) {
   });
 
   traverse(ast, {
-    JSXAttribute(path) {
+    JSXAttribute(jsxPath) {
       if (
-        path.node.name.name === "className" &&
-        path.node.value &&
-        path.node.value.type === "StringLiteral"
+        jsxPath.node.name.name === "className" &&
+        jsxPath.node.value &&
+        jsxPath.node.value.type === "StringLiteral"
       ) {
-        const classNames = path.node.value.value.split(" ");
+        const classNames = jsxPath.node.value.value.split(" ");
         const updatedClassNames = classNames.map((className) => {
           return cssModule[className]
             ? t.memberExpression(
-                t.identifier("cssModule"),
+                t.identifier(importAlias),
                 t.stringLiteral(className),
                 true
               )
             : t.stringLiteral(className);
         });
-        // path.node.value = t.jsxExpressionContainer(
-        //   t.stringLiteral(updatedClassNames.join(" "))
-        // );
 
-        console.log("JE", updatedClassNames);
-
-        path.node.value = t.jsxExpressionContainer(
+        jsxPath.node.value = t.jsxExpressionContainer(
           t.callExpression(
             t.memberExpression(
               t.arrayExpression(updatedClassNames),
@@ -77,21 +127,6 @@ function transformClassNames(code, cssModule) {
             [t.stringLiteral(" ")]
           )
         );
-
-        // path.node.value = t.jsxExpressionContainer(
-        //   t.templateLiteral(
-        //     [
-        //       t.templateElement(
-        //         {
-        //           raw: "$ help",
-        //           cooked: "coocked",
-        //         },
-        //         true
-        //       ),
-        //     ],
-        //     []
-        //   )
-        // );
       }
     },
   });
@@ -99,6 +134,11 @@ function transformClassNames(code, cssModule) {
   return generateCode(ast);
 }
 
+/**
+ *
+ * @param {*} ast - Absract syntax tree of the JSX code
+ * @returns - JSX code with replaced classNames
+ */
 function generateCode(ast) {
   const { code } = require("@babel/core").transformFromAstSync(ast, null, {
     configFile: false,

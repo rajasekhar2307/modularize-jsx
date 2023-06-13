@@ -7,16 +7,32 @@
     "modularize-jsx": "./index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
+  },
+  "jest": {
+    "testEnvironment": "node"
   },
   "author": "brs",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.2.5"
+    "@types/node": "^20.2.5",
+    "jest": "^29.5.0"
   },
   "dependencies": {
     "@babel/core": "^7.22.1",
     "@babel/parser": "^7.22.4",
-    "@babel/types": "^7.22.4"
-  }
+    "@babel/types": "^7.22.4",
+    "pretty-error": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rajasekhar2307/modularize-jsx.git"
+  },
+  "keywords": [
+    "modular-css",
+    "modular-jsx",
+    "modularize-jsx",
+    "react",
+    "next"
+  ]
 }
