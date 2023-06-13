@@ -1,4 +1,4 @@
-# Modularize JSX
+# `Modularize JSX`
 
 A tool to convert your classNames into modular css in your JSX/TSX file.
 
@@ -63,4 +63,4 @@ function Component() {
 
 ## License
 
-ISC
+MIT
