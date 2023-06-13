@@ -1,6 +1,6 @@
 {
   "name": "modularize-jsx",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Modularize your classNames in jsx/tsx file",
   "main": "index.js",
   "bin": {
